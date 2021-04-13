@@ -1,0 +1,2 @@
+control.c:17:6:Set_Pwm	16	static
+control.c:32:5:Incremental_PI	32	static
