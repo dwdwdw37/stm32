@@ -23,6 +23,7 @@ Core/DataScope \
 Core/Src \
 Core/Startup \
 Core/control \
+Core/oled \
 Core/printf \
 Drivers/STM32F1xx_HAL_Driver/Src \
 

@@ -31,6 +31,7 @@
 #include "retarget.h"
 #include "control.h"
 #include "DataScope_DP.h"
+#include "oled.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,18 +54,27 @@
 /* USER CODE BEGIN PV */
 uint16_t Send_Count;
 
-int Target_velocity = 2000;
+int Target_velocity = DC;
+
+
 
 int DirectionA;
 int CaptureNumberA;
 float cnt=0;
+
+float Kp=20,Ki=30;
+
+uint8_t counter=0;
+uint8_t RxBuffer[4];
+
+uint8_t dat[] = {"hello_world!"};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -109,11 +119,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
   RetargetInit(&huart2);
 
+
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 
+  HAL_UART_Receive_IT(&huart2, RxBuffer, 4);
 
+  OLED_Init();
+  OLED_Clear();
+  OLED_ShowString(0, 0, dat,8, 1);
+  OLED_Refresh();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -173,24 +189,51 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	int moto;
 	if(htim==(&htim2)){
-		cnt = cnt + 0.02;
+		cnt = cnt + 0.0314;
 		if(cnt>6.28)cnt = 0;
 		Target_velocity = DC + 500*sin(cnt);
 		DirectionA = (int)(__HAL_TIM_IS_TIM_COUNTING_DOWN(&htim3));
 		CaptureNumberA = (short)(__HAL_TIM_GetCounter(&htim3));
 		__HAL_TIM_SET_COUNTER(&htim3,0);
 
-		moto=Incremental_PI(CaptureNumberA,Target_velocity);
+		moto=Incremental_PI(CaptureNumberA,Target_velocity,Kp,Ki);
 		Set_Pwm(moto);
 
 		DataScope_Get_Channel_Data((float)(CaptureNumberA/100),1);
 		DataScope_Get_Channel_Data((float)(Target_velocity/100),2);
 		Send_Count = DataScope_Data_Generate(4);
-		HAL_UART_Transmit_DMA(&huart1, &DataScope_OutPut_Buffer, Send_Count);
+		HAL_UART_Transmit_DMA(&huart1, DataScope_OutPut_Buffer, Send_Count);
+		printf("%d %d kp:%d ki:%d\r\n",CaptureNumberA/100,Target_velocity/100,(int)Kp,(int)Ki);
+/*
+		counter++;
+		if(counter>10){
+			uint8_t data[16];
+			counter = 0;
+			OLED_ShowString(0, 0, "target", 6, 1);
+			sprintf(data,"%d",(int)(Target_velocity/100));
+			OLED_ShowString(1, 0, data, 16, 1);
+			OLED_ShowString(2, 0, "encoder", 7, 1);
+			sprintf(data,"%d",(int)(CaptureNumberA/100));
+			OLED_ShowString(3, 0, data, 16, 1);
+			OLED_Refresh();
+
+		}*/
 	}
 
 
 
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart==(&huart2)){
+
+		if((RxBuffer[0]==0xfe)&&(RxBuffer[3]==0xff)){
+			Kp = RxBuffer[1];
+			Ki = RxBuffer[2];
+		}
+		HAL_UART_Receive_IT(&huart2, RxBuffer, 4);
+	}
 }
 /* USER CODE END 4 */
 

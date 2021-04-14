@@ -10,6 +10,7 @@
 "Core/Src/usart.o"
 "Core/Startup/startup_stm32f103c8tx.o"
 "Core/control/control.o"
+"Core/oled/oled.o"
 "Core/printf/retarget.o"
 "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.o"
 "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.o"

@@ -14,6 +14,8 @@
 #define Amplitude 7100
 
 
+
+
 void Set_Pwm(int moto)
 {
 	if(moto>Amplitude) moto = Amplitude;
@@ -29,9 +31,9 @@ void Set_Pwm(int moto)
 	__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,abs(moto));
 }
 
-int Incremental_PI (int Encoder,int Target)
+int Incremental_PI (int Encoder,int Target,float Kp,float Ki)
 {
-	float Kp=20,Ki=30;
+
 	static int Bias,Pwm,Last_bias;
 	Bias=Encoder-Target;
 	Pwm+=Kp*(Bias-Last_bias)+Ki*Bias;
